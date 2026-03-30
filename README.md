@@ -18,7 +18,7 @@
 
 ---
 
-## 📌 Overview
+##  Overview
 
 This project implements a **multi-factor biometric attendance system** using an ESP32 microcontroller, RC522 RFID reader, and a Python-based deep learning pipeline. It requires both a **physical RFID card** and a **live face match** with **blink-based liveness detection** to mark attendance — making proxy attendance and photo spoofing practically impossible.
 
@@ -26,53 +26,53 @@ The system is designed with an **offline-first architecture**: attendance is alw
 
 ---
 
-## 📸 Screenshots
+## Screenshots
 
-### 🖥️ Web Dashboard — Home
+###  Web Dashboard — Home
 ![Dashboard](screenshots/dashboard_home.png)
 
-### 👤 Student Registration
+###  Student Registration
 ![Register](screenshots/register_student.png)
 
-### 👥 Registered Students
+###  Registered Students
 ![Students](screenshots/students_list.png)
 
-### 📊 Attendance Records
+###  Attendance Records
 ![Records](screenshots/attendance_records.png)
 
-### 👁️ Face Verification Live
+###  Face Verification Live
 ![Face Verify](screenshots/face_verification.png)
 
-### ✅ Attendance Verified
+###  Attendance Verified
 ![Verified](screenshots/face_verified.png)
 
-### 📟 ESP32 Serial Monitor
+###  ESP32 Serial Monitor
 ![Node Server](screenshots/node_server.png)
 
-### 📟 ESP32 Serial Monitor
+###  ESP32 Serial Monitor
 ![Serial Monitor](screenshots/serial_monitor.png)
 
 ---
 
-## ✨ Features
+##  Features
 
 | Feature | Description |
 |---|---|
-| 🔐 **Dual-Factor Auth** | RFID card + live face verification required simultaneously |
-| 👁️ **Liveness Detection** | Eye Aspect Ratio (EAR) blink analysis prevents photo spoofing |
-| 📡 **Self-Contained Network** | ESP32 acts as WiFi hotspot — no router or internet needed for core function |
-| 🌐 **Offline-First Design** | CSV logging when offline, auto-sync to MongoDB on reconnection |
-| 🖥️ **Web Dashboard** | Real-time admin panel — register, monitor, delete students and records |
-| 🗣️ **Voice Feedback** | Text-to-speech guides users through each step |
-| ⏱️ **Cooldown Protection** | 60-second window prevents duplicate attendance entries |
-| 📊 **REST API** | Full Flask API with MongoDB integration for all operations |
-| 📁 **CSV Export** | One-click download of attendance records |
-| 🔄 **Auto Sync** | Offline records uploaded to MongoDB automatically on reconnection |
-| 👥 **Batch Registration** | Register multiple students at once from a folder of photos |
+|  **Dual-Factor Auth** | RFID card + live face verification required simultaneously |
+|  **Liveness Detection** | Eye Aspect Ratio (EAR) blink analysis prevents photo spoofing |
+|  **Self-Contained Network** | ESP32 acts as WiFi hotspot — no router or internet needed for core function |
+|  **Offline-First Design** | CSV logging when offline, auto-sync to MongoDB on reconnection |
+|  **Web Dashboard** | Real-time admin panel — register, monitor, delete students and records |
+|  **Voice Feedback** | Text-to-speech guides users through each step |
+|  **Cooldown Protection** | 60-second window prevents duplicate attendance entries |
+|  **REST API** | Full Flask API with MongoDB integration for all operations |
+|  **CSV Export** | One-click download of attendance records |
+|  **Auto Sync** | Offline records uploaded to MongoDB automatically on reconnection |
+|  **Batch Registration** | Register multiple students at once from a folder of photos |
 
 ---
 
-## 🏗️ System Architecture
+##  System Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -119,7 +119,7 @@ The system is designed with an **offline-first architecture**: attendance is alw
 
 ---
 
-## 🧠 AI Pipeline
+##  AI Pipeline
 
 ```
 Live Camera Frame
@@ -131,7 +131,7 @@ MediaPipe FaceMesh ──► 468 facial landmarks detected
 EAR Calculation ──► (|p2-p6| + |p3-p5|) / (2 × |p1-p4|)
        │
        ▼
-EAR < 0.22 for 2+ frames ──► Blink Confirmed (Liveness ✅)
+EAR < 0.22 for 2+ frames ──► Blink Confirmed (Liveness )
        │
        ▼
 Wait 0.8s (eyes open) ──► Capture 3 frames
@@ -142,13 +142,13 @@ DeepFace.represent() ──► FaceNet 128-dim embedding vector
        ▼
 Cosine Similarity vs stored vector
        │
-       ├── ≥ 0.60 ──► ✅ VERIFIED → Mark Attendance
-       └──  < 0.60 ──► ❌ REJECTED → Access Denied
+       ├── ≥ 0.60 ──►  VERIFIED → Mark Attendance
+       └──  < 0.60 ──►  REJECTED → Access Denied
 ```
 
 ---
 
-## 🛠️ Tech Stack
+##  Tech Stack
 
 | Category | Technology | Purpose |
 |---|---|---|
@@ -168,29 +168,29 @@ Cosine Similarity vs stored vector
 
 ---
 
-## 📁 Project Structure
+##  Project Structure
 
 ```
 IoT_Attendance/
 │
-├── 📄 server.js                # Node.js middleware — bridges ESP32 ↔ Python
-├── 🐍 attendance_system.py     # Core attendance engine (RFID + liveness + face)
-├── 🐍 deepface_api.py          # Flask REST API with MongoDB integration
-├── 🐍 batch_register.py        # Batch register students from photo folder
-├── 🐍 register_student.py      # Register single student via live webcam
-├── 🐍 sync_data.py             # Sync offline CSV records to MongoDB
-├── 🌐 attendance_system.html   # Web dashboard (served by Flask)
+├──  server.js                # Node.js middleware — bridges ESP32 ↔ Python
+├──  attendance_system.py     # Core attendance engine (RFID + liveness + face)
+├──  deepface_api.py          # Flask REST API with MongoDB integration
+├──  batch_register.py        # Batch register students from photo folder
+├──  register_student.py      # Register single student via live webcam
+├──  sync_data.py             # Sync offline CSV records to MongoDB
+├──  attendance_system.html   # Web dashboard (served by Flask)
 │
-├── 📋 rfid_faces.json          # Local face vector database (auto-managed)
-├── 📊 micro_sd_log.csv         # Offline attendance log (auto-created)
+├──  rfid_faces.json          # Local face vector database (auto-managed)
+├──  micro_sd_log.csv         # Offline attendance log (auto-created)
 │
-└── 📁 known_faces/             # Student registration photos
-    └── A4784F06_John Doe.jpg   # Format: RFID_UID_Full Name.jpg
+└──  known_faces/             # Student registration photos
+    └── A4784F06_Vaibhav Sharma Doe.jpg   # Format: RFID_UID_Full Name.jpg
 ```
 
 ---
 
-## 🔌 Hardware Wiring
+##  Hardware Wiring
 
 ### RC522 → ESP32
 
@@ -214,7 +214,7 @@ IoT_Attendance/
 
 ---
 
-## 🚀 Getting Started
+##  Getting Started
 
 ### Prerequisites
 
@@ -297,11 +297,11 @@ python deepface_api.py
 1. Connect PC WiFi to **ESP32_NET** (password: `12345678`)
 2. Scan RFID card on RC522 reader
 3. Look at webcam and **blink once**
-4. ✅ Attendance marked!
+4.  Attendance marked!
 
 ---
 
-## 🌐 Web Dashboard
+##  Web Dashboard
 
 Access at `http://127.0.0.1:8000` after running `python deepface_api.py`
 
@@ -314,7 +314,7 @@ Access at `http://127.0.0.1:8000` after running `python deepface_api.py`
 
 ---
 
-## 📡 API Reference
+##  API Reference
 
 ### Student Endpoints
 
@@ -347,7 +347,7 @@ Access at `http://127.0.0.1:8000` after running `python deepface_api.py`
 
 ---
 
-## 🔒 Security Design
+##  Security Design
 
 ```
 Attack Vector          Defense Mechanism
@@ -361,7 +361,7 @@ Network Interception   Local hotspot (no internet exposure)
 
 ---
 
-## 📊 Performance
+##  Performance
 
 | Metric | Result |
 |---|---|
@@ -375,7 +375,7 @@ Network Interception   Local hotspot (no internet exposure)
 
 ---
 
-## 🔧 Configuration
+##  Configuration
 
 All key parameters are in `attendance_system.py`:
 
@@ -389,7 +389,7 @@ NODE_SERVER          = "http://127.0.0.1:3000"   # Node.js server
 
 ---
 
-## 🐛 Troubleshooting
+##  Troubleshooting
 
 | Problem | Solution |
 |---|---|
@@ -403,7 +403,7 @@ NODE_SERVER          = "http://127.0.0.1:3000"   # Node.js server
 
 ---
 
-## 🗺️ Roadmap
+##  Roadmap
 
 - [ ] Multi-camera support for large classrooms
 - [ ] Mobile app for real-time monitoring
@@ -416,7 +416,7 @@ NODE_SERVER          = "http://127.0.0.1:3000"   # Node.js server
 
 ---
 
-## 🤝 Contributing
+##  Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
@@ -428,13 +428,13 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ---
 
-## 📄 License
+##  License
 
 This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
 
 ---
 
-## 👨‍💻 Author
+##  Author
 
 **Vaibhav Sharma**
 B.Tech Computer Science & Engineering
@@ -443,7 +443,7 @@ Session: 2025-26
 
 ---
 
-## 🙏 Acknowledgements
+##  Acknowledgements
 
 - [DeepFace](https://github.com/serengil/deepface) — Face recognition framework
 - [MediaPipe](https://github.com/google/mediapipe) — Face landmark detection
