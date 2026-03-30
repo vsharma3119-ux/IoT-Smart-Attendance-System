@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FaceAttend — Smart Attendance System</title>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+    <style>
+        *, ::before, *::after { box-sizing: border-box; margin: 0; padding: 0 }
+        :root {
+            --bg: #07090f; --s1: #0d1018; --s2: #131720;
+            --border: #1c2235; --border2: #252d42;
+            --cyan: #00ffe0; --cyan2: rgba(0,255,224,0.08);
+            --violet: #a855f7; --green: #22d3a5;
+            --red: #f43f5e; --amber: #f59e0b;
+            --text: #dde3f0; --muted: #3d4a6b; --muted2: #5a6a90;
+            --font: 'IBM Plex Mono', monospace;
+        }
+        body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100vh; overflow-x: hidden; }
+        body::before {
+            content: ''; position: fixed; inset: 0;
+            background: radial-gradient(ellipse 60% 40% at 10% 20%, rgba(0,255,224,0.04) 0%, transparent 60%),
+                        radial-gradient(ellipse 50% 50% at 90% 80%, rgba(168,85,247,0.04) 0%, transparent 60%);
+            pointer-events: none; z-index: 0;
+        }
+        body::after {
+            content: ''; position: fixed; inset: 0;
+            background-image: linear-gradient(rgba(0,255,224,0.025) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(0,255,224,0.025) 1px, transparent 1px);
+            background-size: 48px 48px; pointer-events: none; z-index: 0;
+        }
+        header {
+            position: sticky; top: 0; z-index: 100;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 36px; height: 60px;
+            background: rgba(7,9,15,0.92); border-bottom: 1px solid var(--border);
+            backdrop-filter: blur(20px);
+        }
+        .logo { font-size: 1.25rem; font-weight: 700; color: var(--cyan); display: flex; align-items: center; gap: 10px; }
+        .logo-icon { width: 28px; height: 28px; background: var(--cyan); border-radius: 6px; display: grid; place-items: center; }
+        .logo span { color: var(--text); }
+        .header-right { display: flex; align-items: center; gap: 16px; }
+        .db-badge { font-size: 0.65rem; padding: 4px 10px; border-radius: 4px; border: 1px solid var(--border2); color: var(--muted2); letter-spacing: 0.08em; }
+        .live-pill { display: flex; align-items: center; gap: 6px; font-size: 0.65rem; color: var(--green); border: 1px solid rgba(34,211,165,0.25); padding: 4px 12px; border-radius: 100px; }
+        .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); animation: blink 1.8s ease-in-out infinite; }
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+        nav { position: relative; z-index: 10; display: flex; gap: 2px; padding: 24px 36px 0; }
+        .nav-btn {
+            font-family: var(--font); font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase;
+            padding: 10px 22px; background: transparent; border: 1px solid var(--border); border-bottom: none;
+            color: var(--muted2); cursor: pointer; border-radius: 6px 6px 0 0; transition: all 0.2s; position: relative;
+        }
+        .nav-btn::after { content: ''; position: absolute; bottom: -1px; left: 0; right: 0; height: 1px; background: var(--s2); opacity: 0; transition: opacity 0.2s; }
+        .nav-btn.active { color: var(--cyan); border-color: var(--cyan); background: var(--s2); }
+        .nav-btn.active::after { opacity: 1; }
+        .nav-btn:hover:not(.active) { color: var(--text); border-color: var(--border2); }
+        .nav-count { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; background: rgba(0,255,224,0.12); color: var(--cyan); border-radius: 4px; font-size: 0.6rem; padding: 0 4px; margin-left: 6px; }
+        main { position: relative; z-index: 10; padding: 0 36px 48px; }
+        .panel { display: none; background: var(--s2); border: 1px solid var(--border); border-top: 1px solid var(--cyan); border-radius: 0 8px 8px 8px; padding: 32px; animation: slideIn 0.25s ease; }
+        .panel.active { display: block; }
+        @keyframes slideIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+        .two-col { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 28px; align-items: start; }
+        .cam-section { display: flex; flex-direction: column; gap: 12px; }
+        .cam-label { font-size: 0.65rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted2); }
+        .cam-box { position: relative; background: #040507; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; aspect-ratio: 4/3; }
+        .cam-box video { width: 100%; height: 100%; object-fit: cover; display: block; transform: scaleX(-1); }
+        .cam-box canvas { display: none; }
+        .cam-idle { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; color: var(--muted); font-size: 0.72rem; }
+        .cam-idle-icon { width: 52px; height: 52px; border: 2px solid var(--border2); border-radius: 50%; display: grid; place-items: center; }
+        .scan-beam { position: absolute; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, transparent 0%, var(--cyan) 50%, transparent 100%); filter: blur(1px); animation: scanMove 2s linear infinite; opacity: 0; pointer-events: none; }
+        .cam-box.scanning .scan-beam { opacity: 0.8; }
+        .cam-box.scanning { border-color: rgba(0,255,224,0.4); }
+        @keyframes scanMove { 0%{top:0} 100%{top:100%} }
+        .corners::before,.corners::after,.corners-b::before,.corners-b::after { content:''; position:absolute; width:20px; height:20px; border-color:var(--cyan); border-style:solid; opacity:0.5; }
+        .corners::before { top:10px; left:10px; border-width:2px 0 0 2px; }
+        .corners::after { top:10px; right:10px; border-width:2px 2px 0 0; }
+        .corners-b::before { bottom:10px; left:10px; border-width:0 0 2px 2px; }
+        .corners-b::after { bottom:10px; right:10px; border-width:0 2px 2px 0; }
+        .ctrl-section { display: flex; flex-direction: column; gap: 14px; }
+        .field { display: flex; flex-direction: column; gap: 6px; }
+        .field label { font-size: 0.68rem; color: var(--muted2); letter-spacing: 0.05em; }
+        input[type=text], input[type=date], select { width: 100%; background: var(--s1); border: 1px solid var(--border2); color: var(--text); font-family: var(--font); font-size: 0.8rem; padding: 10px 14px; border-radius: 6px; outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
+        input[type=text]:focus, input[type=date]:focus, select:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px rgba(0,255,224,0.07); }
+        .btn { font-family: var(--font); font-size: 0.74rem; letter-spacing: 0.04em; text-transform: uppercase; font-weight: 700; padding: 11px 18px; border-radius: 6px; border: none; cursor: pointer; transition: all 0.18s; display: inline-flex; align-items: center; justify-content: center; gap: 8px; white-space: nowrap; }
+        .btn-cyan { background: var(--cyan); color: #000; }
+        .btn-cyan:hover { background: #00e8cd; transform: translateY(-1px); box-shadow: 0 4px 20px rgba(0,255,224,0.25); }
+        .btn-outline { background: transparent; border: 1px solid var(--border2); color: var(--text); }
+        .btn-outline:hover { border-color: var(--cyan); color: var(--cyan); }
+        .btn-danger { background: transparent; border: 1px solid var(--red); color: var(--red); }
+        .btn-danger:hover { background: var(--red); color: #fff; }
+        .btn-violet { background: rgba(168,85,247,0.15); border: 1px solid rgba(168,85,247,0.4); color: var(--violet); }
+        .btn-violet:hover { background: rgba(168,85,247,0.25); }
+        .btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+        .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
+        .btn-full { width: 100%; }
+        .divider { display: flex; align-items: center; gap: 12px; font-size: 0.65rem; color: var(--muted); letter-spacing: 0.1em; }
+        .divider::before,.divider::after { content:''; flex:1; height:1px; background:var(--border); }
+        .result-box { background: var(--s1); border: 1px solid var(--border); border-radius: 8px; padding: 18px; display: none; }
+        .result-box.show { display: block; animation: slideIn 0.25s ease; }
+        .result-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+        .result-name { font-size: 1rem; font-weight: 600; }
+        .result-id { font-size: 0.7rem; color: var(--muted2); margin-top: 2px; }
+        .result-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 0.75rem; }
+        .result-row:last-child { border-bottom: none; }
+        .rk { color: var(--muted2); }
+        .rv { color: var(--text); font-weight: 500; }
+        .badge { padding: 3px 10px; border-radius: 4px; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; }
+        .badge-green { background: rgba(34,211,165,0.12); color: var(--green); border: 1px solid rgba(34,211,165,0.3); }
+        .badge-amber { background: rgba(245,158,11,0.12); color: var(--amber); border: 1px solid rgba(245,158,11,0.3); }
+        .badge-red { background: rgba(244,63,94,0.12); color: var(--red); border: 1px solid rgba(244,63,94,0.3); }
+        .badge-cyan { background: rgba(0,255,224,0.08); color: var(--cyan); border: 1px solid rgba(0,255,224,0.25); }
+        .stats-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 24px; }
+        .stat-card { background: var(--s1); border: 1px solid var(--border); border-radius: 8px; padding: 16px 18px; position: relative; overflow: hidden; }
+        .stat-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:var(--cyan); opacity:0.4; }
+        .stat-num { font-size: 2rem; font-weight: 700; color: var(--cyan); line-height: 1; }
+        .stat-lbl { font-size: 0.65rem; color: var(--muted2); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.08em; }
+        .students-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px,1fr)); gap: 14px; margin-top: 16px; }
+        .student-card { background: var(--s1); border: 1px solid var(--border); border-radius: 8px; padding: 14px; text-align: center; position: relative; transition: border-color 0.2s; }
+        .student-card:hover { border-color: var(--border2); }
+        .student-thumb { width: 72px; height: 72px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border2); margin-bottom: 8px; }
+        .student-name { font-size: 0.78rem; font-weight: 600; color: var(--text); }
+        .student-id { font-size: 0.65rem; color: var(--muted2); margin-top: 2px; }
+        .student-del { position: absolute; top: 8px; right: 8px; background: transparent; border: none; color: var(--muted); cursor: pointer; font-size: 0.75rem; padding: 2px 5px; border-radius: 4px; transition: all 0.2s; }
+        .student-del:hover { background: rgba(244,63,94,0.15); color: var(--red); }
+        .table-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px; }
+        .tbl-wrap { overflow-x: auto; border-radius: 8px; border: 1px solid var(--border); }
+        table { width: 100%; border-collapse: collapse; }
+        thead tr { background: var(--s1); border-bottom: 1px solid var(--border); }
+        th { padding: 12px 16px; text-align: left; font-size: 0.65rem; color: var(--muted2); letter-spacing: 0.1em; text-transform: uppercase; font-weight: 500; white-space: nowrap; }
+        td { padding: 11px 16px; font-size: 0.75rem; border-bottom: 1px solid var(--border); }
+        tbody tr:last-child td { border-bottom: none; }
+        tbody tr:hover td { background: rgba(255,255,255,0.02); }
+        .empty-row td { text-align: center; color: var(--muted); padding: 28px; }
+        .file-drop { position: relative; border: 1px dashed var(--border2); border-radius: 8px; padding: 20px; text-align: center; font-size: 0.72rem; color: var(--muted2); cursor: pointer; transition: border-color 0.2s; }
+        .file-drop:hover { border-color: var(--cyan); color: var(--cyan); }
+        .file-drop input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+        .file-preview { width: 100%; max-height: 160px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); margin-top: 8px; display: none; }
+        .sec-title { font-size: 0.65rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted2); margin-bottom: 10px; }
+        .export-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        /* Toast */
+        #toast { position: fixed; bottom: 24px; right: 24px; z-index: 9999; background: var(--s2); border: 1px solid var(--border2); border-radius: 10px; padding: 14px 18px; min-width: 260px; max-width: 360px; transform: translateY(120%); transition: transform 0.3s ease; pointer-events: none; }
+        #toast.show { transform: translateY(0); pointer-events: auto; }
+        #toast.success { border-color: var(--green); }
+        #toast.error { border-color: var(--red); }
+        #toast.warn { border-color: var(--amber); }
+        .toast-title { font-weight: 700; font-size: 0.8rem; margin-bottom: 4px; }
+        .toast-msg { font-size: 0.72rem; color: var(--muted2); }
+        #toast.success .toast-title { color: var(--green); }
+        #toast.error .toast-title { color: var(--red); }
+        #toast.warn .toast-title { color: var(--amber); }
+        /* Preview image */
+        #reg-preview { width:100%; border-radius:8px; border:2px solid var(--cyan); display:none; margin-top:8px; }
+        /* Capture indicator */
+        .capture-indicator { text-align:center; font-size:0.7rem; color:var(--green); padding:6px; display:none; }
+        .capture-indicator.show { display:block; }
+        @media(max-width:900px) { .two-col{grid-template-columns:1fr} .stats-grid{grid-template-columns:repeat(2,1fr)} header,nav,main{padding-left:20px;padding-right:20px} }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="logo">
+        <div class="logo-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" width="16" height="16">
+                <circle cx="12" cy="8" r="4"/>
+                <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+            </svg>
+        </div>
+        Face<span>Attend</span>
+    </div>
+    <div class="header-right">
+        <div class="db-badge" id="api-status">MongoDB · Connecting...</div>
+        <div class="live-pill"><div class="live-dot"></div>SYSTEM READY</div>
+    </div>
+</header>
+
+<nav>
+    <button class="nav-btn active" onclick="tab('register', this)">Register Student</button>
+    <button class="nav-btn" onclick="tab('students', this)">Students <span class="nav-count" id="cnt-students">0</span></button>
+    <button class="nav-btn" onclick="tab('records', this)">Records <span class="nav-count" id="cnt-records">0</span></button>
+</nav>
+
+<main>
+
+    <!-- ═══ REGISTER STUDENT ═══ -->
+    <div class="panel active" id="panel-register">
+        <div class="two-col">
+            <div class="cam-section">
+                <div class="cam-label">Capture Student Photo</div>
+                <div class="cam-box corners corners-b" id="reg-box">
+                    <video id="reg-video" autoplay playsinline muted></video>
+                    <canvas id="reg-snap" style="display:none"></canvas>
+                    <div class="scan-beam"></div>
+                    <div class="cam-idle" id="reg-idle">
+                        <div class="cam-idle-icon">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+                            </svg>
+                        </div>
+                        <span>Camera inactive</span>
+                        <span style="color:var(--muted);font-size:0.65rem">Click Start Camera below</span>
+                    </div>
+                </div>
+
+                <!-- Captured photo preview -->
+                <img id="reg-preview" alt="Captured photo" />
+                <div class="capture-indicator" id="capture-ok"> Photo captured — ready to register</div>
+
+                <div class="btn-row" style="margin-top:8px">
+                    <button class="btn btn-cyan" id="reg-start" onclick="startCam('reg')">▶ Start Camera</button>
+                    <button class="btn btn-outline" id="reg-stop" onclick="stopCam('reg')" disabled>Stop</button>
+                    <button class="btn btn-outline" id="reg-capture-btn" onclick="captureReg()" disabled>📸 Capture</button>
+                    <button class="btn btn-outline" onclick="retakePhoto()"> Retake</button>
+                </div>
+
+                <div class="divider" style="margin-top:8px">OR UPLOAD PHOTO</div>
+
+                <div class="file-drop" id="file-drop-zone">
+                    <input type="file" id="reg-file" accept="image/*" onchange="handleFileUpload(event)" />
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom:6px;opacity:0.4">
+                        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                    <div>Drop image here or click to browse</div>
+                    <img id="upload-preview" class="file-preview" alt="" />
+                </div>
+            </div>
+
+            <div class="ctrl-section">
+                <div class="sec-title">Student Information</div>
+
+                <div class="field">
+                    <label>RFID Card UID *</label>
+                    <input type="text" id="reg-id" placeholder="e.g. A4784F06" style="text-transform:uppercase" />
+                    <small style="color:var(--muted2);font-size:0.65rem">Scan card to get UID from ESP32 Serial Monitor</small>
+                </div>
+                <div class="field">
+                    <label>Full Name *</label>
+                    <input type="text" id="reg-name" placeholder="e.g. Vaibhav Sharma" />
+                </div>
+                <div class="field">
+                    <label>Class / Section</label>
+                    <input type="text" id="reg-class" placeholder="e.g. CSE-3A" />
+                </div>
+
+                <button class="btn btn-cyan btn-full" id="reg-submit-btn" onclick="registerStudent()" style="padding:14px;margin-top:6px">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                        <path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/>
+                        <line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/>
+                    </svg>
+                    Register Student
+                </button>
+
+                <div class="result-box" id="reg-result">
+                    <div class="result-header" id="reg-result-header"></div>
+                </div>
+
+                <div style="margin-top:8px;padding:12px;background:var(--s1);border-radius:8px;border:1px solid var(--border)">
+                    <div class="sec-title" style="margin-bottom:8px"> Registration Steps</div>
+                    <div style="font-size:0.7rem;color:var(--muted2);line-height:2">
+                        1. Enter RFID UID (from Serial Monitor)<br>
+                        2. Enter student name and class<br>
+                        3. Start camera → click 📸 Capture<br>
+                        4. Verify the preview looks good<br>
+                        5. Click Register Student
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ STUDENTS LIST ═══ -->
+    <div class="panel" id="panel-students">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+            <div>
+                <div style="font-size:1.1rem;font-weight:600">Registered Students</div>
+                <div style="font-size:0.7rem;color:var(--muted2);margin-top:3px">All students stored in MongoDB</div>
+            </div>
+            <div class="btn-row">
+                <button class="btn btn-outline" onclick="loadStudents()"> Refresh</button>
+                <button class="btn btn-danger" onclick="clearAllStudents()" style="background:rgba(244,63,94,0.15);border:1px solid var(--red);color:var(--red);">🗑 Clear All</button>
+            </div>
+        </div>
+        <div class="students-grid" id="students-grid">
+            <div style="color:var(--muted);font-size:0.75rem;padding:20px;grid-column:1/-1">Loading students...</div>
+        </div>
+    </div>
+
+    <!-- ═══ RECORDS ═══ -->
+    <div class="panel" id="panel-records">
+        <div class="stats-grid">
+            <div class="stat-card"><div class="stat-num" id="s-total">0</div><div class="stat-lbl">Total Records</div></div>
+            <div class="stat-card"><div class="stat-num" id="s-today">0</div><div class="stat-lbl">Today</div></div>
+            <div class="stat-card"><div class="stat-num" id="s-students">0</div><div class="stat-lbl">Students</div></div>
+            <div class="stat-card"><div class="stat-num" id="s-rate">0%</div><div class="stat-lbl">Today's Rate</div></div>
+        </div>
+        <div class="table-header">
+            <div class="export-row">
+                <div class="field" style="margin:0">
+                    <input type="date" id="filter-date" style="width:auto" />
+                </div>
+                <button class="btn btn-outline" onclick="loadRecords()">Filter</button>
+                <button class="btn btn-outline" onclick="clearDateFilter()">All</button>
+            </div>
+            <div class="export-row">
+                <button class="btn btn-violet" onclick="exportCSV()">Export CSV</button>
+                <button class="btn btn-danger" onclick="clearAllRecords()" style="background:rgba(244,63,94,0.15);border:1px solid var(--red);color:var(--red);">🗑 Clear All Records</button>
+            </div>
+        </div>
+        <div class="tbl-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>RFID</th><th>Name</th><th>Class</th>
+                        <th>Date</th><th>Time</th><th>Status</th><th>Confidence</th><th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="records-tbody">
+                    <tr class="empty-row"><td colspan="8">Loading records...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</main>
+
+<!-- TOAST -->
+<div id="toast">
+    <div class="toast-title" id="toast-title"></div>
+    <div class="toast-msg" id="toast-msg"></div>
+</div>
+
+<script>
+const API = "http://127.0.0.1:8000";
+
+// ═══════════════════════════════════════════════════
+// Toast
+// ═══════════════════════════════════════════════════
+let toastT;
+function toast(title, msg = '', type = 'info') {
+    const el = document.getElementById('toast');
+    document.getElementById('toast-title').textContent = title;
+    document.getElementById('toast-msg').textContent = msg;
+    el.className = `show ${type}`;
+    clearTimeout(toastT);
+    toastT = setTimeout(() => el.classList.remove('show'), 4000);
+}
+
+// ═══════════════════════════════════════════════════
+// Tab Switcher
+// ═══════════════════════════════════════════════════
+function tab(name, btn) {
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.getElementById(`panel-${name}`).classList.add('active');
+    if (btn) btn.classList.add('active');
+    if (name === 'students') loadStudents();
+    if (name === 'records') { loadRecords(); loadStats(); }
+}
+
+// ═══════════════════════════════════════════════════
+// Camera Management
+// ═══════════════════════════════════════════════════
+const streams = {};
+
+async function startCam(prefix) {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } }
+        });
+        streams[prefix] = stream;
+        const vid = document.getElementById(`${prefix}-video`);
+        vid.srcObject = stream;
+        document.getElementById(`${prefix}-idle`).style.display = 'none';
+        document.getElementById(`${prefix}-box`).classList.add('scanning');
+        document.getElementById(`${prefix}-start`).disabled = true;
+        document.getElementById(`${prefix}-stop`).disabled = false;
+        const capBtn = document.getElementById(`${prefix}-capture-btn`);
+        if (capBtn) capBtn.disabled = false;
+        toast('Camera started', 'Webcam is active', 'info');
+    } catch (e) {
+        toast('Camera Error', e.message, 'error');
+    }
+}
+
+function stopCam(prefix) {
+    if (streams[prefix]) {
+        streams[prefix].getTracks().forEach(t => t.stop());
+        delete streams[prefix];
+    }
+    const vid = document.getElementById(`${prefix}-video`);
+    if (vid) vid.srcObject = null;
+    const idle = document.getElementById(`${prefix}-idle`);
+    if (idle) idle.style.display = 'flex';
+    document.getElementById(`${prefix}-box`).classList.remove('scanning');
+    document.getElementById(`${prefix}-start`).disabled = false;
+    document.getElementById(`${prefix}-stop`).disabled = true;
+    const capBtn = document.getElementById(`${prefix}-capture-btn`);
+    if (capBtn) capBtn.disabled = true;
+}
+
+// ── Capture frame — MIRRORS the video (un-flips) ──
+function captureFrame(prefix, quality = 0.95) {
+    const vid = document.getElementById(`${prefix}-video`);
+    const cnv = document.getElementById(`${prefix}-snap`);
+
+    if (!vid || !vid.videoWidth) {
+        toast('Camera Error', 'Camera not ready', 'error');
+        return null;
+    }
+
+    cnv.width  = vid.videoWidth;
+    cnv.height = vid.videoHeight;
+    const ctx  = cnv.getContext('2d');
+
+    // Draw WITHOUT mirroring — we want the real image for face recognition
+    ctx.drawImage(vid, 0, 0, cnv.width, cnv.height);
+
+    return cnv.toDataURL('image/jpeg', quality);
+}
+
+// Register Student 
+
+let capturedRegPhoto = null; // stores the base64 of captured/uploaded photo
+
+function captureReg() {
+    if (!streams.reg) {
+        toast('No Camera', 'Start camera first', 'warn');
+        return;
+    }
+
+    // Give camera 300ms to settle before capture
+    setTimeout(() => {
+        const photo = captureFrame('reg', 0.95);
+        if (!photo) return;
+
+        capturedRegPhoto = photo;
+
+        // Show preview
+        const prev = document.getElementById('reg-preview');
+        prev.src = photo;
+        prev.style.display = 'block';
+
+        // Show indicator
+        document.getElementById('capture-ok').classList.add('show');
+
+        toast('Photo captured!', 'Preview shown below camera. Ready to register.', 'success');
+    }, 300);
+}
+
+function retakePhoto() {
+    capturedRegPhoto = null;
+    const prev = document.getElementById('reg-preview');
+    prev.src = '';
+    prev.style.display = 'none';
+    document.getElementById('capture-ok').classList.remove('show');
+    document.getElementById('upload-preview').style.display = 'none';
+    document.getElementById('reg-file').value = '';
+    toast('Retake', 'Capture or upload a new photo', 'info');
+}
+
+function handleFileUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+        capturedRegPhoto = ev.target.result;
+        const prev = document.getElementById('upload-preview');
+        prev.src = capturedRegPhoto;
+        prev.style.display = 'block';
+        document.getElementById('capture-ok').classList.add('show');
+        toast('Photo loaded', file.name, 'info');
+    };
+    reader.readAsDataURL(file);
+}
+
+async function registerStudent() {
+    const rfid = document.getElementById('reg-id').value.trim().toUpperCase();
+    const name = document.getElementById('reg-name').value.trim();
+    const cls  = document.getElementById('reg-class').value.trim() || 'N/A';
+
+    // Validate
+    if (!rfid) { toast('Missing RFID', 'Enter the RFID card UID', 'warn'); return; }
+    if (!name) { toast('Missing Name', 'Enter the student name', 'warn'); return; }
+    if (!capturedRegPhoto) {
+        toast('No Photo', 'Please capture or upload a photo first', 'warn');
+        return;
+    }
+
+    const btn = document.getElementById('reg-submit-btn');
+    btn.disabled = true;
+    btn.textContent = 'Registering...';
+
+    try {
+        const response = await fetch(`${API}/register-student`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                name:  name,
+                rfid:  rfid,
+                class: cls,
+                image: capturedRegPhoto   // ← sends the exact captured photo
+            })
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result.status === 'success') {
+            // Show success result card
+            const box = document.getElementById('reg-result');
+            document.getElementById('reg-result-header').innerHTML = `
+                <img src="${capturedRegPhoto}" style="width:50px;height:50px;border-radius:50%;object-fit:cover;border:2px solid var(--green)">
+                <div>
+                    <div class="result-name" style="color:var(--green)"> ${name}</div>
+                    <div class="result-id">RFID: ${rfid} · Class: ${cls}</div>
+                    <div class="result-id" style="color:var(--green)">Registered successfully!</div>
+                </div>`;
+            box.classList.add('show');
+
+            toast('Registered!', `${name} added to system`, 'success');
+
+            // Clear form
+            document.getElementById('reg-id').value  = '';
+            document.getElementById('reg-name').value = '';
+            document.getElementById('reg-class').value = '';
+            capturedRegPhoto = null;
+            document.getElementById('reg-preview').style.display = 'none';
+            document.getElementById('capture-ok').classList.remove('show');
+            document.getElementById('upload-preview').style.display = 'none';
+
+            // Update counts
+            updateCounts();
+
+        } else {
+            toast('Registration Failed', result.message || 'Server error', 'error');
+            console.error('Server error:', result);
+        }
+
+    } catch (err) {
+        toast('Connection Failed', 'Is deepface_api.py running?', 'error');
+        console.error(err);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Register Student';
+    }
+}
+
+
+// Students List 
+
+async function loadStudents() {
+    const grid = document.getElementById('students-grid');
+    grid.innerHTML = `<div style="color:var(--muted);font-size:0.75rem;padding:20px;grid-column:1/-1">Loading...</div>`;
+
+    try {
+        const res  = await fetch(`${API}/get-students`);
+        const data = await res.json();
+        const students = data.students || [];
+
+        document.getElementById('cnt-students').textContent = students.length;
+
+        if (!students.length) {
+            grid.innerHTML = `<div style="color:var(--muted);font-size:0.75rem;padding:20px;grid-column:1/-1">No students registered yet.</div>`;
+            return;
+        }
+
+        grid.innerHTML = students.map(s => `
+            <div class="student-card">
+                <img src="${API}/get-photo/${s.rfid}" class="student-thumb"
+                     onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 50 50%22><circle cx=%2225%22 cy=%2218%22 r=%2210%22 fill=%22%233d4a6b%22/><path d=%22M5 45c0-11 8-18 20-18s20 7 20 18%22 fill=%22%233d4a6b%22/></svg>'" >
+                <div class="student-name">${s.name}</div>
+                <div class="student-id">${s.rfid}</div>
+                <div class="student-id" style="color:var(--muted);font-size:0.6rem">${s.class || 'N/A'}</div>
+                <button class="student-del" onclick="deleteStudent('${s.rfid}', '${s.name}')">✕</button>
+            </div>
+        `).join('');
+
+    } catch(e) {
+        grid.innerHTML = `<div style="color:var(--red);font-size:0.75rem;padding:20px;grid-column:1/-1">⚠ Cannot connect to API. Is deepface_api.py running?</div>`;
+    }
+}
+
+async function deleteStudent(rfid, name) {
+    if (!confirm(`Delete student ${name} (${rfid})? This cannot be undone.`)) return;
+    try {
+        const res  = await fetch(`${API}/delete-student/${rfid}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.status === 'success') {
+            toast('Deleted', `${name} removed from system`, 'warn');
+            loadStudents();
+            updateCounts();
+        } else {
+            toast('Error', data.message, 'error');
+        }
+    } catch(e) {
+        toast('Error', 'Could not connect to server', 'error');
+    }
+}
+
+// Records 
+
+async function loadRecords() {
+    const date  = document.getElementById('filter-date').value;
+    const tbody = document.getElementById('records-tbody');
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="8">Loading...</td></tr>';
+
+    try {
+        let url = `${API}/get-logs`;
+        if (date) url += `?date=${date}`;
+        const res  = await fetch(url);
+        const data = await res.json();
+        const records = data.logs || [];
+
+        document.getElementById('cnt-records').textContent = records.length;
+
+        if (!records.length) {
+            tbody.innerHTML = '<tr class="empty-row"><td colspan="8">No records found</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = records.map(r => {
+            const [datePart, timePart] = r.timestamp ? r.timestamp.split(' ') : ['—','—'];
+            const conf = r.similarity ? (r.similarity * 100).toFixed(1) + '%' : '—';
+            const rid  = r._id || '';
+            const rname = (r.name||'').replace(/'/g, "\'");
+            return `<tr>
+                <td><span style="color:var(--cyan);font-size:0.7rem">${r.rfid||'—'}</span></td>
+                <td>${r.name||'—'}</td>
+                <td>${r.class||'—'}</td>
+                <td>${datePart}</td>
+                <td>${timePart}</td>
+                <td><span class="badge badge-green">Present</span></td>
+                <td><span style="color:var(--cyan);font-size:0.7rem">${conf}</span></td>
+                <td><button onclick="deleteRecord('${rid}','${rname}','${r.timestamp||''}')"
+                    style="background:rgba(244,63,94,0.12);border:1px solid var(--red);color:var(--red);
+                    border-radius:4px;padding:3px 9px;cursor:pointer;font-size:0.7rem;font-family:var(--font);">✕</button></td>
+            </tr>`;
+        }).join('');
+
+    } catch(e) {
+        tbody.innerHTML = '<tr class="empty-row"><td colspan="8">⚠ Could not connect to server</td></tr>';
+    }
+}
+
+function clearDateFilter() {
+    document.getElementById('filter-date').value = '';
+    loadRecords();
+}
+
+async function loadStats() {
+    try {
+        const today = new Date().toISOString().split('T')[0];
+        const [allRes, todayRes, studentsRes] = await Promise.all([
+            fetch(`${API}/get-logs`),
+            fetch(`${API}/get-logs?date=${today}`),
+            fetch(`${API}/get-students`)
+        ]);
+        const allData      = await allRes.json();
+        const todayData    = await todayRes.json();
+        const studentsData = await studentsRes.json();
+
+        const total        = allData.count || 0;
+        const todayCount   = todayData.count || 0;
+        const studentCount = (studentsData.students||[]).length;
+        const rate         = studentCount ? Math.round(todayCount/studentCount*100) : 0;
+
+        document.getElementById('s-total').textContent    = total;
+        document.getElementById('s-today').textContent    = todayCount;
+        document.getElementById('s-students').textContent = studentCount;
+        document.getElementById('s-rate').textContent     = rate + '%';
+    } catch(e) {
+        console.warn('Stats load failed:', e);
+    }
+}
+
+async function updateCounts() {
+    try {
+        const [sRes, rRes] = await Promise.all([
+            fetch(`${API}/get-students`),
+            fetch(`${API}/get-logs`)
+        ]);
+        const sData = await sRes.json();
+        const rData = await rRes.json();
+        document.getElementById('cnt-students').textContent = (sData.students||[]).length;
+        document.getElementById('cnt-records').textContent  = rData.count || 0;
+    } catch(e) {}
+}
+
+async function clearAllStudents() {
+    if (!confirm('Delete ALL students?\nThis removes everyone from MongoDB and rfid_faces.json.\nThis cannot be undone.')) return;
+    try {
+        const res  = await fetch(`${API}/delete-all-students`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.status === 'success') {
+            toast('Cleared', data.message, 'warn');
+            loadStudents(); updateCounts();
+        } else { toast('Error', data.message, 'error'); }
+    } catch(e) { toast('Error', 'Could not connect to server', 'error'); }
+}
+
+async function deleteRecord(recordId, name, timestamp) {
+    if (!confirm(`Delete record for "${name}" at ${timestamp}?`)) return;
+    try {
+        const res  = await fetch(`${API}/delete-record/${recordId}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.status === 'success') {
+            toast('Deleted', `Record for ${name} removed`, 'warn');
+            loadRecords(); updateCounts(); loadStats();
+        } else { toast('Error', data.message, 'error'); }
+    } catch(e) { toast('Error', 'Could not connect to server', 'error'); }
+}
+
+async function clearAllRecords() {
+    if (!confirm('Delete ALL attendance records?\nThis cannot be undone.')) return;
+    try {
+        const res  = await fetch(`${API}/delete-all-records`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.status === 'success') {
+            toast('Cleared', data.message, 'warn');
+            loadRecords(); updateCounts(); loadStats();
+        } else { toast('Error', data.message, 'error'); }
+    } catch(e) { toast('Error', 'Could not connect to server', 'error'); }
+}
+
+async function exportCSV() {
+    try {
+        const res     = await fetch(`${API}/get-logs`);
+        const data    = await res.json();
+        const records = data.logs || [];
+        if (!records.length) { toast('No Data', 'Nothing to export', 'warn'); return; }
+        const header = 'RFID,Name,Class,Date,Time,Similarity\n';
+        const rows   = records.map(r => {
+            const [d, t] = r.timestamp ? r.timestamp.split(' ') : ['',''];
+            return `${r.rfid},"${r.name}","${r.class||''}",${d},${t},${r.similarity||''}`;
+        }).join('\n');
+        const blob = new Blob([header+rows], { type:'text/csv' });
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href     = url;
+        a.download = `attendance_${new Date().toISOString().split('T')[0]}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+        toast('Exported', `${records.length} records downloaded`, 'success');
+    } catch(e) {
+        toast('Error', 'Could not fetch records', 'error');
+    }
+}
+
+// API Health Check
+
+async function checkAPI() {
+    try {
+        const res  = await fetch(`${API}/health`, { signal: AbortSignal.timeout(3000) });
+        const data = await res.json();
+        if (data.status === 'ok') {
+            document.getElementById('api-status').textContent = 'MongoDB · Connected ';
+            document.getElementById('api-status').style.color = 'var(--green)';
+        }
+    } catch(e) {
+        document.getElementById('api-status').textContent = 'API Offline ⚠';
+        document.getElementById('api-status').style.color = 'var(--red)';
+    }
+}
+
+// Init
+
+(async () => {
+    document.getElementById('filter-date').value = new Date().toISOString().split('T')[0];
+    await checkAPI();
+    await updateCounts();
+    toast('FaceAttend Ready', 'Register Student tab is active', 'info');
+})();
+</script>
+</body>
+</html>
