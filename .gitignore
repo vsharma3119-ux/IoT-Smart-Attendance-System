@@ -1,1 +1,7 @@
+rfid_faces.json 
+micro_sd_log.csv 
+known_faces/*.jpg 
+known_faces/*.png 
 node_modules/ 
+__pycache__/ 
+*.pyc 
