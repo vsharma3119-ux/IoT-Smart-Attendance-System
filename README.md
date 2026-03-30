@@ -46,7 +46,7 @@ The system is designed with an **offline-first architecture**: attendance is alw
 ###  Attendance Verified
 ![Verified](screenshots/face_verified.png)
 
-###  ESP32 Serial Monitor
+###  Node Server
 ![Node Server](screenshots/node_server.png)
 
 ###  ESP32 Serial Monitor
