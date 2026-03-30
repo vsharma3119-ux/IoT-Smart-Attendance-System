@@ -185,7 +185,7 @@ IoT_Attendance/
 ├──  micro_sd_log.csv         # Offline attendance log (auto-created)
 │
 └──  known_faces/             # Student registration photos
-    └── A4784F06_Vaibhav Sharma Doe.jpg   # Format: RFID_UID_Full Name.jpg
+    └── A4784F06_Vaibhav Sharma.jpg   # Format: RFID_UID_Full Name.jpg
 ```
 
 ---
@@ -260,7 +260,7 @@ npm install express
 **Option A — Batch from photos:**
 ```bash
 # Name photos as: RFID_UID_Full Name.jpg
-# Example: A4784F06_John Doe.jpg
+# Example: A4784F06_Vaibhav Sharma.jpg
 # Place in known_faces/ folder, then:
 python batch_register.py
 ```
